@@ -1,0 +1,34 @@
+#$ -S /bin/bash
+#$ -q cat@catl
+#$ -cwd
+#$ -t 1:3
+
+echo original path:$PATH
+PATH=/home/tshibata/lcl/bin:$PATH
+source /opt/smrtanalysis/etc/setup.sh
+
+jobidarray=(018099 018103 018105 018106)
+query=${jobidarray[$[$SGE_TASK_ID] - 1]}
+
+#done:017937 017945 
+
+mkdir -p /mnt/nfs/ngs/3/pacbio_data/burk2
+mkdir -p /mnt/nfs/ngs/3/pacbio_data/burk2/length
+
+#copy
+cp /opt/smrtanalysis/common/jobs/018/$query/data/filtered_subreads.fasta /mnt/nfs/ngs/3/pacbio_data/burk2/${query}_filtered_subreads.fasta
+
+cp /opt/smrtanalysis/common/jobs/018/$query/data/filtered_subreads.fastq /mnt/nfs/ngs/3/pacbio_data/burk2/${query}_filtered_subreads.fastq
+
+#read_length
+/home/tshibata/scripts/fastaLengths.pl /mnt/nfs/ngs/3/pacbio_data/burk2/${query}_filtered_subreads.fasta > /mnt/nfs/ngs/3/pacbio_data/burk2/length/${query}_mean_subreads.length
+
+which ruby
+
+ruby /home/tshibata/scripts/fastqmaxlengths.rb /mnt/nfs/ngs/3/pacbio_data/burk2/${query}_filtered_subreads.fastq >/mnt/nfs/ngs/3/pacbio_data/burk2/length/${query}_max_subread.length
+
+grep -c '42184' /mnt/nfs/ngs/3/pacbio_data/burk2/length/${query}_max_subread.length > /mnt/nfs/ngs/3/pacbio_data/burk2/length/${query}_number_reads
+
+#stats
+ruby /home/tshibata/scripts/flatmaxlengthstat.rb /opt/smrtanalysis/common/jobs/018/$query/data/filtered_subreads.fasta >> /mnt/nfs/ngs/3/pacbio_data/burk2/burk2_pbstats
+
